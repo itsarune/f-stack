@@ -52,8 +52,8 @@
 #include <rte_ip.h>
 #include <rte_tcp.h>
 #include <rte_udp.h>
-#include <rte_eth_bond.h>
-#include <rte_eth_bond_8023ad.h>
+//#include <rte_eth_bond.h>
+//#include <rte_eth_bond_8023ad.h>
 
 #include "ff_dpdk_if.h"
 #include "ff_dpdk_pcap.h"
@@ -602,9 +602,12 @@ init_port_start(void)
             nb_queues = pconf->nb_lcores;
             nb_slaves = pconf->nb_slaves;
 
-            if (nb_slaves > 0) {
-                rte_eth_bond_8023ad_dedicated_queues_enable(u_port_id);
-            }
+            // ARUN: rte_eth_bond isn't available with Mellanox
+            assert(nb_slaves == 0);
+
+            //if (nb_slaves > 0) {
+            //    rte_eth_bond_8023ad_dedicated_queues_enable(u_port_id);
+            //}
         } else {
             /* kernel virtio user, port id start from `nb_dev_ports` */
             u_port_id = i - nb_ports + nb_dev_ports;
@@ -793,30 +796,33 @@ init_port_start(void)
                 }
             }
 
-            if (strncmp(dev_info.driver_name, BOND_DRIVER_NAME,
-                    strlen(dev_info.driver_name)) == 0) {
+            // ARUN: rte_eth_bond isn't available with Mellanox
+            assert(strncmp(dev_info.driver_name, BOND_DRIVER_NAME,
+                strlen(dev_info.driver_name)) != 0);
+            // if (strncmp(dev_info.driver_name, BOND_DRIVER_NAME,
+            //         strlen(dev_info.driver_name)) == 0) {
 
-                rte_eth_macaddr_get(port_id, &addr);
-                printf("Port %u MAC:"RTE_ETHER_ADDR_PRT_FMT"\n",
-                        (unsigned)port_id, RTE_ETHER_ADDR_BYTES(&addr));
+            //     rte_eth_macaddr_get(port_id, &addr);
+            //     printf("Port %u MAC:"RTE_ETHER_ADDR_PRT_FMT"\n",
+            //             (unsigned)port_id, RTE_ETHER_ADDR_BYTES(&addr));
 
-                rte_memcpy(pconf->mac,
-                    addr.addr_bytes, RTE_ETHER_ADDR_LEN);
+            //     rte_memcpy(pconf->mac,
+            //         addr.addr_bytes, RTE_ETHER_ADDR_LEN);
 
-                int mode, count, x;
-                uint16_t slaves[RTE_MAX_ETHPORTS], len = RTE_MAX_ETHPORTS;
+            //     int mode, count, x;
+            //     uint16_t slaves[RTE_MAX_ETHPORTS], len = RTE_MAX_ETHPORTS;
 
-                mode = rte_eth_bond_mode_get(port_id);
-                printf("Port %u, bond mode:%d\n", port_id, mode);
+            //     mode = rte_eth_bond_mode_get(port_id);
+            //     printf("Port %u, bond mode:%d\n", port_id, mode);
 
-                count = rte_eth_bond_slaves_get(port_id, slaves, len);
-                printf("Port %u, %s's slave ports count:%d\n", port_id,
-                            ff_global_cfg.dpdk.bond_cfgs->name, count);
-                for (x=0; x<count; x++) {
-                    printf("Port %u, %s's slave port[%u]\n", port_id,
-                            ff_global_cfg.dpdk.bond_cfgs->name, slaves[x]);
-                }
-            }
+            //     count = rte_eth_bond_slaves_get(port_id, slaves, len);
+            //     printf("Port %u, %s's slave ports count:%d\n", port_id,
+            //                 ff_global_cfg.dpdk.bond_cfgs->name, count);
+            //     for (x=0; x<count; x++) {
+            //         printf("Port %u, %s's slave port[%u]\n", port_id,
+            //                 ff_global_cfg.dpdk.bond_cfgs->name, slaves[x]);
+            //     }
+            // }
 
             ret = rte_eth_dev_start(port_id);
             if (ret < 0) {
