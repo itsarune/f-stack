@@ -59,6 +59,8 @@ void ff_run(loop_func_t loop, void *arg);
 
 void ff_stop_run(void);
 
+void ff_wait_run(void);
+
 /* POSIX-LIKE api begin */
 
 int ff_fcntl(int fd, int cmd, ...);

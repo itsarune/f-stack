@@ -67,3 +67,8 @@ ff_stop_run(void)
     ff_dpdk_stop();
 }
 
+void
+ff_wait_run(void)
+{
+    ff_dpdk_wait();
+}

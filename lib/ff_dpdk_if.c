@@ -127,6 +127,8 @@ static dispatch_func_t packet_dispatcher;
 
 static uint16_t rss_reta_size[RTE_MAX_ETHPORTS];
 
+struct loop_routine *lr;
+
 #define BOND_DRIVER_NAME    "net_bonding"
 
 static inline int send_single_packet(struct rte_mbuf *m, uint8_t port);
@@ -2222,12 +2224,17 @@ ff_dpdk_if_up(void) {
 
 void
 ff_dpdk_run(loop_func_t loop, void *arg) {
-    struct loop_routine *lr = rte_malloc(NULL,
-        sizeof(struct loop_routine), 0);
+    if (lr) {
+        rte_free(lr);
+    }
+    lr = rte_malloc(NULL, sizeof(struct loop_routine), 0);
     stop_loop = 0;
     lr->loop = loop;
     lr->arg = arg;
     rte_eal_mp_remote_launch(main_loop, lr, CALL_MAIN);
+}
+
+void ff_dpdk_wait(void) {
     rte_eal_mp_wait_lcore();
     rte_free(lr);
 }
