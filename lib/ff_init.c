@@ -56,9 +56,9 @@ ff_init(int argc, char * const argv[])
 }
 
 void
-ff_run(loop_func_t loop, void *arg)
+ff_run(loop_func_t loop, void *arg, bool call_main)
 {
-    ff_dpdk_run(loop, arg);
+    ff_dpdk_run(loop, arg, call_main);
 }
 
 void

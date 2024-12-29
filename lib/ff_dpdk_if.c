@@ -2223,7 +2223,7 @@ ff_dpdk_if_up(void) {
 }
 
 void
-ff_dpdk_run(loop_func_t loop, void *arg) {
+ff_dpdk_run(loop_func_t loop, void *arg, bool call_main) {
     if (lr) {
         rte_free(lr);
     }
@@ -2231,7 +2231,11 @@ ff_dpdk_run(loop_func_t loop, void *arg) {
     stop_loop = 0;
     lr->loop = loop;
     lr->arg = arg;
-    rte_eal_mp_remote_launch(main_loop, lr, CALL_MAIN);
+    if (call_main) {
+        rte_eal_mp_remote_launch(main_loop, lr, CALL_MAIN);
+    } else {
+        rte_eal_mp_remote_launch(main_loop, lr, SKIP_MAIN);
+    }
 }
 
 void ff_dpdk_wait(void) {

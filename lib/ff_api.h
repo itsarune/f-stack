@@ -30,6 +30,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include <stdbool.h>
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/poll.h>
@@ -55,7 +56,7 @@ extern __thread struct thread *pcurthread;
 
 int ff_init(int argc, char * const argv[]);
 
-void ff_run(loop_func_t loop, void *arg);
+void ff_run(loop_func_t loop, void *arg, bool call_main);
 
 void ff_stop_run(void);
 
