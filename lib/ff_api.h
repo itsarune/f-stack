@@ -55,6 +55,9 @@ typedef int (*loop_func_t)(void *arg);
 extern __thread struct thread *pcurthread;
 
 int ff_init(int argc, char * const argv[]);
+int ff_init_load_config(int argc, char * const argv[]);
+int ff_init_freebsd(void);
+int ff_init_dpdk(void);
 
 void ff_run(loop_func_t loop, void *arg, bool call_main);
 

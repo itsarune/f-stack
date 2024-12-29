@@ -33,6 +33,47 @@
 extern int ff_freebsd_init();
 
 int
+ff_init_load_config(int argc, char * const argv[])
+{
+    int ret;
+    ret = ff_load_config(argc, argv);
+    if (ret < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int
+ff_init_freebsd(void)
+{
+    int ret;
+    ret = ff_freebsd_init();
+    if (ret < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int
+ff_init_dpdk(void)
+{
+    int ret;
+    ret = ff_dpdk_init(dpdk_argc, (char **)&dpdk_argv);
+    if (ret < 0) {
+        return -1;
+    }
+
+    ret = ff_dpdk_if_up();
+    if (ret < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int
 ff_init(int argc, char * const argv[])
 {
     int ret;
