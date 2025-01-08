@@ -905,6 +905,8 @@ ini_parse_handler(void* user, const char* section, const char* name,
         pconfig->dpdk.pkt_tx_delay = atoi(value);
     } else if (MATCH("dpdk", "symmetric_rss")) {
         pconfig->dpdk.symmetric_rss = atoi(value);
+    } else if (MATCH("dpdk", "enable_hardware_timestamping")) {
+        pconfig->dpdk.enable_hardware_timestamping = atoi(value);
     } else if (MATCH("kni", "enable")) {
         pconfig->kni.enable= atoi(value);
     } else if (MATCH("kni", "type")) {

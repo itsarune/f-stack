@@ -30,7 +30,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include <stdbool.h>
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/poll.h>
@@ -59,7 +58,7 @@ int ff_init_load_config(int argc, char * const argv[]);
 int ff_init_freebsd(void);
 int ff_init_dpdk(void);
 
-void ff_run(loop_func_t loop, void *arg, bool call_main);
+void ff_run(loop_func_t loop, void *arg);
 
 void ff_stop_run(void);
 

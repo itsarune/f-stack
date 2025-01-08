@@ -755,6 +755,21 @@ init_port_start(void)
                     printf("port[%d]: rss table size: %d\n", port_id,
                         dev_info.reta_size);
                 }
+
+                if (ff_global_cfg.dpdk.enable_hardware_timestamping) {
+                    if (dev_info.rx_offload_capa & RTE_ETH_RX_OFFLOAD_TIMESTAMP) {
+                        printf("RX timestamp offload supported\n");
+                        port_conf.rxmode.offloads |= RTE_ETH_RX_OFFLOAD_TIMESTAMP;
+                        rte_mbuf_dyn_rx_timestamp_register(&pconf->hwts_dynfield_offset, NULL);
+                        if (pconf->hwts_dynfield_offset < 0) {
+                            printf("Failed to register timestamp field\n");
+                        } else {
+                            ff_global_cfg.dpdk.enable_hardware_timestamping = false;
+                        }
+                    } else {
+                        ff_global_cfg.dpdk.enable_hardware_timestamping = false;
+                    }
+                }
             }
 
             if (rte_eal_process_type() != RTE_PROC_PRIMARY) {
@@ -2223,7 +2238,7 @@ ff_dpdk_if_up(void) {
 }
 
 void
-ff_dpdk_run(loop_func_t loop, void *arg, bool call_main) {
+ff_dpdk_run(loop_func_t loop, void *arg) {
     if (lr) {
         rte_free(lr);
     }
@@ -2231,11 +2246,7 @@ ff_dpdk_run(loop_func_t loop, void *arg, bool call_main) {
     stop_loop = 0;
     lr->loop = loop;
     lr->arg = arg;
-    if (call_main) {
-        rte_eal_mp_remote_launch(main_loop, lr, CALL_MAIN);
-    } else {
-        rte_eal_mp_remote_launch(main_loop, lr, SKIP_MAIN);
-    }
+    rte_eal_mp_remote_launch(main_loop, lr, CALL_MAIN);
 }
 
 void ff_dpdk_wait(void) {

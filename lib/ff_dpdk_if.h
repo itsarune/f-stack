@@ -38,7 +38,7 @@ struct loop_routine {
 
 int ff_dpdk_init(int argc, char **argv);
 int ff_dpdk_if_up(void);
-void ff_dpdk_run(loop_func_t loop, void *arg, bool call_main);
+void ff_dpdk_run(loop_func_t loop, void *arg);
 void ff_dpdk_stop(void);
 void ff_dpdk_wait(void);
 

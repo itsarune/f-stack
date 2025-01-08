@@ -157,6 +157,8 @@ struct ff_port_cfg {
 
     int nb_vlan;
     struct ff_vlan_cfg *vlan_cfgs[DPDK_MAX_VLAN_FILTER];
+
+    int hwts_dynfield_offset;
 };
 
 struct ff_vdev_cfg {
@@ -246,6 +248,9 @@ struct ff_config {
         struct ff_vlan_cfg *vlan_cfgs;
         struct ff_vdev_cfg *vdev_cfgs;
         struct ff_bond_cfg *bond_cfgs;
+
+        // Enable RX hardware timestamping
+        int enable_hardware_timestamping;
     } dpdk;
 
     struct {
