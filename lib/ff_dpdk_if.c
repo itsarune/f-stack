@@ -148,6 +148,30 @@ static struct ff_top_args ff_top_status;
 static struct ff_traffic_args ff_traffic;
 extern void ff_hardclock(void);
 
+#define TICKS_PER_CYCLE_SHIFT 16
+static uint64_t ticks_per_cycle_mult;
+
+struct FstackTxTimestamps g_fstack_txTimestamps;
+
+static uint16_t
+mark_tx_timestamps(uint16_t port,
+        uint16_t qidx __rte_unused,
+        struct rte_mbuf **pkts,
+        uint16_t nb_pkts,
+        void*_ __rte_unused) {
+    uint64_t now;
+    rte_eth_read_clock(port, &now);
+
+    uint64_t cycles_diff = (now * ticks_per_cycle_mult) >> TICKS_PER_CYCLE_SHIFT;
+    uint64_t diff_ns = cycles_diff / rte_get_tsc_hz() * 1000000000;
+    for (size_t i = 0; i < nb_pkts; i++) {
+        if (g_fstack_txTimestamps.numTimestamps < MAX_TIMESTAMPS) {
+            g_fstack_txTimestamps.timestamps[g_fstack_txTimestamps.numTimestamps++] = diff_ns;
+        }
+    }
+    return nb_pkts;
+}
+
 static void
 ff_hardclock_job(__rte_unused struct rte_timer *timer,
     __rte_unused void *arg) {
@@ -757,18 +781,39 @@ init_port_start(void)
                 }
 
                 if (ff_global_cfg.dpdk.enable_hardware_timestamping) {
-                    if (dev_info.rx_offload_capa & RTE_ETH_RX_OFFLOAD_TIMESTAMP) {
-                        printf("RX timestamp offload supported\n");
-                        port_conf.rxmode.offloads |= RTE_ETH_RX_OFFLOAD_TIMESTAMP;
-                        rte_mbuf_dyn_rx_timestamp_register(&pconf->hwts_dynfield_offset, NULL);
-                        if (pconf->hwts_dynfield_offset < 0) {
-                            printf("Failed to register timestamp field\n");
-                        } else {
-                            ff_global_cfg.dpdk.enable_hardware_timestamping = false;
-                        }
-                    } else {
-                        ff_global_cfg.dpdk.enable_hardware_timestamping = false;
+                    //if (dev_info.rx_offload_capa & RTE_ETH_RX_OFFLOAD_TIMESTAMP) {
+                    //    printf("RX timestamp offload supported\n");
+                    //    port_conf.rxmode.offloads |= RTE_ETH_RX_OFFLOAD_TIMESTAMP;
+                    //    rte_mbuf_dyn_rx_timestamp_register(&pconf->hwts_dynfield_offset, NULL);
+                    //    if (pconf->hwts_dynfield_offset < 0) {
+                    //        printf("Failed to register timestamp field\n");
+                    //    } else {
+                    //        ff_global_cfg.dpdk.enable_hardware_timestamping = false;
+                    //    }
+                    //} else {
+                    //    ff_global_cfg.dpdk.enable_hardware_timestamping = false;
+                    //}
+                    uint64_t cycles_base = rte_rdtsc();
+                    uint64_t ticks_base;
+                    ret = rte_eth_read_clock(port_id, &ticks_base);
+                    if (ret != 0) {
+                        printf("Failed to read clock for hardware timestamping\n");
+                        continue;
                     }
+                    rte_delay_ms(100);
+                    uint64_t cycles = rte_rdtsc();
+                    uint64_t ticks;
+                    rte_eth_read_clock(port_id, &ticks);
+                    uint64_t c_freq = cycles - cycles_base;
+                    uint64_t t_freq = ticks - ticks_base;
+                    double freq_mult = (double) c_freq / t_freq;
+                    printf("TSC Freq ~= %" PRIu64
+                        "\nHW Freq ~= %" PRIu64
+                        "\nRatio : %f\n",
+                        c_freq * 10, t_freq * 10, freq_mult);
+                    ticks_per_cycle_mult = (1 << TICKS_PER_CYCLE_SHIFT) / freq_mult;
+
+                    rte_eth_add_tx_callback(port_id, 0, mark_tx_timestamps, NULL);
                 }
             }
 

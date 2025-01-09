@@ -49,6 +49,15 @@ struct linux_sockaddr {
 #define AF_INET6_FREEBSD    28
 #define PF_INET6_FREEBSD    AF_INET6_FREEBSD
 
+#define MAX_TIMESTAMPS 16384
+
+struct FstackTxTimestamps {
+    size_t numTimestamps;
+    uint64_t timestamps[MAX_TIMESTAMPS];
+};
+
+extern struct FstackTxTimestamps g_fstack_txTimestamps;
+
 typedef int (*loop_func_t)(void *arg);
 
 extern __thread struct thread *pcurthread;
