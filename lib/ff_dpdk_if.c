@@ -812,8 +812,6 @@ init_port_start(void)
                         "\nRatio : %f\n",
                         c_freq * 10, t_freq * 10, freq_mult);
                     ticks_per_cycle_mult = (1 << TICKS_PER_CYCLE_SHIFT) / freq_mult;
-
-                    rte_eth_add_tx_callback(port_id, 0, mark_tx_timestamps, NULL);
                 }
             }
 
@@ -855,6 +853,10 @@ init_port_start(void)
                     socketid, &rxq_conf, mbuf_pool);
                 if (ret < 0) {
                     return ret;
+                }
+
+                if (ff_global_cfg.dpdk.enable_hardware_timestamping) {
+                    rte_eth_add_tx_callback(port_id, q, mark_tx_timestamps, NULL);
                 }
             }
 
