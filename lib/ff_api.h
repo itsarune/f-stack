@@ -53,7 +53,8 @@ struct linux_sockaddr {
 
 struct FstackTxTimestamps {
     size_t numTimestamps;
-    uint64_t timestamps[MAX_TIMESTAMPS];
+    struct timespec timestamps[MAX_TIMESTAMPS];
+    uint64_t rawHwTimestamps[MAX_TIMESTAMPS];
 };
 
 extern struct FstackTxTimestamps g_fstack_txTimestamps;

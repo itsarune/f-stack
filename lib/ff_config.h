@@ -159,6 +159,10 @@ struct ff_port_cfg {
     struct ff_vlan_cfg *vlan_cfgs[DPDK_MAX_VLAN_FILTER];
 
     int hwts_dynfield_offset;
+
+    struct timespec base_time; 
+    uint64_t base_clock;
+    double freq;
 };
 
 struct ff_vdev_cfg {

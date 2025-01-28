@@ -159,14 +159,26 @@ mark_tx_timestamps(uint16_t port,
         struct rte_mbuf **pkts,
         uint16_t nb_pkts,
         void*_ __rte_unused) {
+    struct ff_port_cfg *pconf = &ff_global_cfg.dpdk.port_cfgs[port];
+    struct timespec current_time = pconf->base_time;
     uint64_t now;
     rte_eth_read_clock(port, &now);
-
-    uint64_t cycles_diff = (now * ticks_per_cycle_mult) >> TICKS_PER_CYCLE_SHIFT;
-    uint64_t diff_ns = cycles_diff / rte_get_tsc_hz() * 1000000000;
+    
+    uint64_t time_diff_s = (now - pconf->base_clock) / pconf->freq;
+    uint64_t base_time_ns = (now - pconf->base_clock - time_diff_s*pconf->freq)*1000000000/pconf->freq;
+    uint64_t base_time_s = current_time.tv_sec + time_diff_s;
+    if (base_time_ns + current_time.tv_nsec >= 1E9) {
+        base_time_s++;
+        base_time_ns = base_time_ns + current_time.tv_nsec - 1E9;
+    } else {
+        base_time_ns += current_time.tv_nsec;
+    }
     for (size_t i = 0; i < nb_pkts; i++) {
         if (g_fstack_txTimestamps.numTimestamps < MAX_TIMESTAMPS) {
-            g_fstack_txTimestamps.timestamps[g_fstack_txTimestamps.numTimestamps++] = diff_ns;
+            g_fstack_txTimestamps.timestamps[g_fstack_txTimestamps.numTimestamps].tv_sec = base_time_s;
+            g_fstack_txTimestamps.timestamps[g_fstack_txTimestamps.numTimestamps].tv_nsec = base_time_ns;
+            g_fstack_txTimestamps.rawHwTimestamps[g_fstack_txTimestamps.numTimestamps] = now;
+            ++g_fstack_txTimestamps.numTimestamps;
         }
     }
     return nb_pkts;
@@ -222,7 +234,11 @@ check_all_ports_link_status(void)
         for (i = 0; i < nb_ports; i++) {
             uint16_t portid = ff_global_cfg.dpdk.portid_list[i];
             memset(&link, 0, sizeof(link));
-            rte_eth_link_get_nowait(portid, &link);
+            int ret = rte_eth_link_get_nowait(portid, &link);
+
+	    if (ret != 0) {
+		    printf("Port %d Link Down due to rte_eth_link_get_nowait failure", (int) portid);
+	    }
 
             /* print link status if flag set */
             if (print_flag == 1) {
@@ -781,37 +797,25 @@ init_port_start(void)
                 }
 
                 if (ff_global_cfg.dpdk.enable_hardware_timestamping) {
-                    //if (dev_info.rx_offload_capa & RTE_ETH_RX_OFFLOAD_TIMESTAMP) {
-                    //    printf("RX timestamp offload supported\n");
-                    //    port_conf.rxmode.offloads |= RTE_ETH_RX_OFFLOAD_TIMESTAMP;
-                    //    rte_mbuf_dyn_rx_timestamp_register(&pconf->hwts_dynfield_offset, NULL);
-                    //    if (pconf->hwts_dynfield_offset < 0) {
-                    //        printf("Failed to register timestamp field\n");
-                    //    } else {
-                    //        ff_global_cfg.dpdk.enable_hardware_timestamping = false;
-                    //    }
-                    //} else {
-                    //    ff_global_cfg.dpdk.enable_hardware_timestamping = false;
-                    //}
-                    uint64_t cycles_base = rte_rdtsc();
-                    uint64_t ticks_base;
-                    ret = rte_eth_read_clock(port_id, &ticks_base);
-                    if (ret != 0) {
-                        printf("Failed to read clock for hardware timestamping\n");
-                        continue;
+                    clock_gettime(CLOCK_REALTIME, &pconf->base_time);
+                    rte_eth_read_clock(port_id, &pconf->base_clock);
+
+                    uint64_t freq[10];
+                    size_t freq_size = sizeof(freq) / sizeof(freq[0]);
+                    for(size_t i = 0; i < freq_size; i++) {
+                        uint64_t start;
+                        rte_eth_read_clock(port_id, &start);
+                        rte_delay_ms(100);
+                        uint64_t end; 
+                        rte_eth_read_clock(port_id, &end);
+                        freq[i] = (end - start) * 10;
                     }
-                    rte_delay_ms(100);
-                    uint64_t cycles = rte_rdtsc();
-                    uint64_t ticks;
-                    rte_eth_read_clock(port_id, &ticks);
-                    uint64_t c_freq = cycles - cycles_base;
-                    uint64_t t_freq = ticks - ticks_base;
-                    double freq_mult = (double) c_freq / t_freq;
-                    printf("TSC Freq ~= %" PRIu64
-                        "\nHW Freq ~= %" PRIu64
-                        "\nRatio : %f\n",
-                        c_freq * 10, t_freq * 10, freq_mult);
-                    ticks_per_cycle_mult = (1 << TICKS_PER_CYCLE_SHIFT) / freq_mult;
+                    for(size_t i = 0; i < freq_size; i++) {
+                        pconf->freq += freq[i];
+                        printf("freq[%ld]: %lu\n", i, freq[i]);
+                    }
+                    pconf->freq /= freq_size;
+                    printf("---freq: %f---\n", pconf->freq);
                 }
             }
 
@@ -847,16 +851,16 @@ init_port_start(void)
                     return ret;
                 }
 
+                if (ff_global_cfg.dpdk.enable_hardware_timestamping) {
+                    rte_eth_add_tx_callback(port_id, q, mark_tx_timestamps, NULL);
+                }
+
                 rxq_conf = dev_info.default_rxconf;
                 rxq_conf.offloads = port_conf.rxmode.offloads;
                 ret = rte_eth_rx_queue_setup(port_id, q, nb_rxd,
                     socketid, &rxq_conf, mbuf_pool);
                 if (ret < 0) {
                     return ret;
-                }
-
-                if (ff_global_cfg.dpdk.enable_hardware_timestamping) {
-                    rte_eth_add_tx_callback(port_id, q, mark_tx_timestamps, NULL);
                 }
             }
 
