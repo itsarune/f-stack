@@ -78,6 +78,7 @@ int vttoif_tab[10] = {
 };
 
 void ff_init_thread0(void);
+void ff_init_thread1(void);
 
 void
 resettodr(void)
@@ -89,6 +90,13 @@ void
 ff_init_thread0(void)
 {
     pcurthread = &thread0;
+}
+
+void
+ff_init_thread1(void)
+{
+    thread1 = thread0;
+    pcurthread = &thread1;
 }
 
 int

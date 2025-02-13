@@ -165,7 +165,7 @@ int ff_dup(int oldfd);
 int ff_dup2(int oldfd, int newfd);
 
 int ff_pthread_create(pthread_t * thread, const pthread_attr_t * attr, 
-    void * (* start_routine) (void *), void * arg);
+    void * (* start_routine) (void *), void * arg, int main_thread);
 int ff_pthread_join(pthread_t thread, void **retval);
 
 /* POSIX-LIKE api end */
@@ -369,6 +369,8 @@ int ff_zc_mbuf_write(struct ff_zc_mbuf *m, const char *data, int len);
  * not implemented now.
  */
 int ff_zc_mbuf_read(struct ff_zc_mbuf *m, const char *data, int len);
+
+void ff_thread1_init(void);
 
 /* ZERO COPY API end */
 

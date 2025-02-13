@@ -48,6 +48,7 @@
 static struct timespec current_ts;
 extern void* ff_mem_get_page();
 extern int ff_mem_free_addr(void* p);
+extern __thread struct thread *pcurthread;
 
 void *
 ff_mmap(void *addr, uint64_t len, int prot, int flags, int fd, uint64_t offset)
@@ -328,4 +329,3 @@ void ff_os_errno(int error)
     }
 
 }
-
