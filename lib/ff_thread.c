@@ -29,7 +29,8 @@ void* ff_start_routine(void * data) {
     if (p_data->main_thread) {
         ff_set_thread(p_data->parent);
     } else {
-        ff_thread1_init();
+        pcurthread = ff_malloc(sizeof(struct thread));
+        pcurthread = p_data->parent;
     }
     ff_free(data);
     start_routine(arg);
