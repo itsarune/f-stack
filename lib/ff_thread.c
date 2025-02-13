@@ -5,6 +5,7 @@
 #include "ff_host_interface.h"
 
 extern __thread struct thread *pcurthread;
+extern void ff_init_thread1(void);
 
 struct thread_data {
     void * (* start_routine) (void *);
@@ -29,8 +30,9 @@ void* ff_start_routine(void * data) {
     if (p_data->main_thread) {
         ff_set_thread(p_data->parent);
     } else {
-        pcurthread = ff_malloc(sizeof(struct thread));
-        pcurthread = p_data->parent;
+        ff_init_thread1();
+//        pcurthread = ff_malloc(sizeof(struct thread));
+//        pcurthread = p_data->parent;
     }
     ff_free(data);
     start_routine(arg);

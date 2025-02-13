@@ -79,7 +79,6 @@ int vttoif_tab[10] = {
 };
 
 void ff_init_thread0(void);
-void ff_init_thread1(void);
 
 void
 resettodr(void)
