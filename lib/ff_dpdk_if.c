@@ -165,19 +165,19 @@ mark_tx_timestamps(uint16_t port,
     uint64_t now;
     rte_eth_read_clock(port, &now);
     
-    uint64_t time_diff_s = (now - pconf->base_clock) / pconf->freq;
-    uint64_t base_time_ns = (now - pconf->base_clock - time_diff_s*pconf->freq)*1000000000/pconf->freq;
-    uint64_t base_time_s = current_time.tv_sec + time_diff_s;
-    if (base_time_ns + current_time.tv_nsec >= 1E9) {
-        base_time_s++;
-        base_time_ns = base_time_ns + current_time.tv_nsec - 1E9;
-    } else {
-        base_time_ns += current_time.tv_nsec;
-    }
+    //uint64_t time_diff_s = (now - pconf->base_clock) / pconf->freq;
+    //uint64_t base_time_ns = (now - pconf->base_clock - time_diff_s*pconf->freq)*1000000000/pconf->freq;
+    //uint64_t base_time_s = current_time.tv_sec + time_diff_s;
+    //if (base_time_ns + current_time.tv_nsec >= 1E9) {
+    //    base_time_s++;
+    //    base_time_ns = base_time_ns + current_time.tv_nsec - 1E9;
+    //} else {
+    //    base_time_ns += current_time.tv_nsec;
+    //}
     for (size_t i = 0; i < nb_pkts; i++) {
         if (g_fstack_txTimestamps.numTimestamps < MAX_TIMESTAMPS) {
-            g_fstack_txTimestamps.timestamps[g_fstack_txTimestamps.numTimestamps].tv_sec = base_time_s;
-            g_fstack_txTimestamps.timestamps[g_fstack_txTimestamps.numTimestamps].tv_nsec = base_time_ns;
+            //g_fstack_txTimestamps.timestamps[g_fstack_txTimestamps.numTimestamps].tv_sec = base_time_s;
+            //g_fstack_txTimestamps.timestamps[g_fstack_txTimestamps.numTimestamps].tv_nsec = base_time_ns;
             g_fstack_txTimestamps.rawHwTimestamps[g_fstack_txTimestamps.numTimestamps] = now;
             ++g_fstack_txTimestamps.numTimestamps;
         }
@@ -797,27 +797,27 @@ init_port_start(void)
                         dev_info.reta_size);
                 }
 
-                if (ff_global_cfg.dpdk.enable_hardware_timestamping) {
-                    clock_gettime(CLOCK_REALTIME, &pconf->base_time);
-                    rte_eth_read_clock(port_id, &pconf->base_clock);
+                //if (ff_global_cfg.dpdk.enable_hardware_timestamping) {
+                //    clock_gettime(CLOCK_REALTIME, &pconf->base_time);
+                //    rte_eth_read_clock(port_id, &pconf->base_clock);
 
-                    uint64_t freq[10];
-                    size_t freq_size = sizeof(freq) / sizeof(freq[0]);
-                    for(size_t i = 0; i < freq_size; i++) {
-                        uint64_t start;
-                        rte_eth_read_clock(port_id, &start);
-                        rte_delay_ms(100);
-                        uint64_t end; 
-                        rte_eth_read_clock(port_id, &end);
-                        freq[i] = (end - start) * 10;
-                    }
-                    for(size_t i = 0; i < freq_size; i++) {
-                        pconf->freq += freq[i];
-                        printf("freq[%ld]: %lu\n", i, freq[i]);
-                    }
-                    pconf->freq /= freq_size;
-                    printf("---freq: %f---\n", pconf->freq);
-                }
+                //    uint64_t freq[10];
+                //    size_t freq_size = sizeof(freq) / sizeof(freq[0]);
+                //    for(size_t i = 0; i < freq_size; i++) {
+                //        uint64_t start;
+                //        rte_eth_read_clock(port_id, &start);
+                //        rte_delay_ms(100);
+                //        uint64_t end; 
+                //        rte_eth_read_clock(port_id, &end);
+                //        freq[i] = (end - start) * 10;
+                //    }
+                //    for(size_t i = 0; i < freq_size; i++) {
+                //        pconf->freq += freq[i];
+                //        printf("freq[%ld]: %lu\n", i, freq[i]);
+                //    }
+                //    pconf->freq /= freq_size;
+                //    printf("---freq: %f---\n", pconf->freq);
+                //}
             }
 
             if (rte_eal_process_type() != RTE_PROC_PRIMARY) {
