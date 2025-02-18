@@ -51,6 +51,10 @@ struct linux_sockaddr {
 
 #define MAX_TIMESTAMPS 16384
 
+extern pthread_mutex_t mtx;
+extern int dpdk_initialized;
+extern pthread_cond_t cond;
+
 struct FstackTxTimestamps {
     size_t numTimestamps;
     struct timespec timestamps[MAX_TIMESTAMPS];

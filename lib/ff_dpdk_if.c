@@ -134,6 +134,10 @@ struct loop_routine *lr;
 
 static inline int send_single_packet(struct rte_mbuf *m, uint8_t port);
 
+pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+int dpdk_initialized = 0;
+
 struct ff_msg_ring {
     char ring_name[FF_MSG_NUM][RTE_RING_NAMESIZE];
     /* ring[0] for lcore recv msg, other send */
@@ -1335,6 +1339,11 @@ ff_dpdk_init(int argc, char **argv)
     if (ret)
 	rte_exit(EXIT_FAILURE, "fdir_add_tcp_flow failed\n");
 #endif
+
+    pthread_mutex_lock(&mtx);
+    dpdk_initialized = 1;
+    pthread_cond_signal(&cond);
+    pthread_mutex_unlock(&mtx);
 
     return 0;
 }
