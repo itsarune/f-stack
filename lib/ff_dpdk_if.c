@@ -116,6 +116,7 @@ static uint8_t symmetric_rsskey[52] = {
 static int rsskey_len = sizeof(default_rsskey_40bytes);
 static uint8_t *rsskey = default_rsskey_40bytes;
 
+// make this an array
 struct lcore_conf lcore_conf;
 
 struct rte_mempool *pktmbuf_pool[NB_SOCKETS];
@@ -2297,7 +2298,8 @@ ff_dpdk_run(loop_func_t loop, void *arg) {
     stop_loop = 0;
     lr->loop = loop;
     lr->arg = arg;
-    rte_eal_mp_remote_launch(main_loop, lr, CALL_MAIN);
+    unsigned lcore_id = rte_lcore_id();
+    rte_eal_remote_launch(main_loop, lr, lcore_id);
 }
 
 void ff_dpdk_wait(void) {
