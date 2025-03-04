@@ -24,6 +24,7 @@
  *
  */
 #include <assert.h>
+#include <pthread.h>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <errno.h>
@@ -2299,7 +2300,7 @@ ff_dpdk_if_up(void) {
 }
 
 void
-ff_dpdk_run(loop_func_t loop, void *arg) {
+ff_dpdk_run(loop_func_t loop, void *arg, unsigned worker_id) {
     if (lr) {
         rte_free(lr);
     }
@@ -2307,8 +2308,7 @@ ff_dpdk_run(loop_func_t loop, void *arg) {
     stop_loop = 0;
     lr->loop = loop;
     lr->arg = arg;
-    unsigned lcore_id = rte_lcore_id();
-    rte_eal_remote_launch(main_loop, lr, lcore_id);
+    rte_eal_remote_launch(main_loop, lr, worker_id);
 }
 
 void ff_dpdk_wait(void) {
