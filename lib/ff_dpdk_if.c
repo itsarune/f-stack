@@ -2138,6 +2138,8 @@ main_loop(void *arg)
 
     qconf = &lcore_conf;
 
+    pcurthread = lr->parent_thread;
+
     while (1) {
 
         if (unlikely(stop_loop)) {
@@ -2308,6 +2310,7 @@ ff_dpdk_run(loop_func_t loop, void *arg, unsigned worker_id) {
     stop_loop = 0;
     lr->loop = loop;
     lr->arg = arg;
+    lr->parent_thread = pcurthread;
     rte_eal_remote_launch(main_loop, lr, worker_id);
 }
 

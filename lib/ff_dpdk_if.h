@@ -34,6 +34,7 @@
 struct loop_routine {
     loop_func_t loop;
     void *arg;
+    struct thread *parent_thread;
 };
 
 int ff_dpdk_init(int argc, char **argv);
