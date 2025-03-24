@@ -373,6 +373,8 @@ static inline void ff_offload_set(struct ff_dpdk_if_context *ctx, void *m, struc
             head->l3_len = iph_len;
         }
     }
+
+    head->ol_flags |= PKT_TX_UDP_SEG;
 }
 
 // create rte_buf refer to data which is transmit from bsd stack by EXT_CLUSTER.

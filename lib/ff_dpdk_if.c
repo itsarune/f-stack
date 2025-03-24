@@ -129,7 +129,7 @@ static dispatch_func_t packet_dispatcher;
 
 static uint16_t rss_reta_size[RTE_MAX_ETHPORTS];
 
-struct loop_routine *lr;
+struct loop_routine lr[RTE_MAX_LCORE];
 
 #define BOND_DRIVER_NAME    "net_bonding"
 
@@ -329,6 +329,7 @@ init_lcore_conf(void)
     lconf->nb_queue_list[PORT] = 1;
 
     lconf = &lcore_conf[WRITE_LCORE];
+    lconf->nb_rx_queue = 0;
     lconf->nb_tx_port = 1;
     lconf->tx_port_id[0] = PORT;
     lconf->tx_queue_id[PORT] = 0;
@@ -807,6 +808,14 @@ init_port_start(void)
                     else {
                         printf("TSO is not supported\n");
                     }
+
+                    if (dev_info.tx_offload_capa & RTE_ETH_TX_OFFLOAD_UDP_TSO) {
+                        printf("UDP TSO is supported\n");
+                        port_conf.txmode.offloads |= RTE_ETH_TX_OFFLOAD_UDP_TSO;
+                    }
+                    else {
+                        printf("UDP TSO is not supported\n");
+                    }
                 } else {
                     printf("TSO is disabled\n");
                 }
@@ -860,6 +869,8 @@ init_port_start(void)
                         "for port%u (%d)\n", (unsigned)port_id, ret);
 
             uint16_t q;
+            // ARUN: nb_queues set to 1
+            nb_queues = 1;
             for (q = 0; q < nb_queues; q++) {
                 if (numa_on) {
                     uint16_t lcore_id = lcore_conf[READ_LCORE].port_cfgs[u_port_id].lcore_list[q];
@@ -2137,7 +2148,7 @@ ff_dpdk_raw_packet_send(void *data, int total, uint16_t port_id)
 static int
 main_loop(void *arg)
 {
-    struct loop_routine *lr = (struct loop_routine *)arg;
+    struct loop_routine *loop_routine = &lr[rte_lcore_id()];
 
     struct rte_mbuf *pkts_burst[MAX_PKT_BURST];
     uint64_t prev_tsc, diff_tsc, cur_tsc, usch_tsc, div_tsc, usr_tsc, sys_tsc, end_tsc, idle_sleep_tsc;
@@ -2156,7 +2167,11 @@ main_loop(void *arg)
 
     qconf = &lcore_conf[rte_lcore_id()];
 
-    pcurthread = lr->parent_thread;
+    pcurthread = loop_routine->parent_thread;
+
+    if (ff_global_cfg.pcap.enable) {
+        ff_enable_pcap(ff_global_cfg.pcap.save_path, ff_global_cfg.pcap.snap_len);
+    }
 
     while (1) {
 
@@ -2269,9 +2284,9 @@ main_loop(void *arg)
 
         div_tsc = rte_rdtsc();
 
-        if (likely(lr->loop != NULL && (!idle || cur_tsc - usch_tsc >= drain_tsc))) {
+        if (likely(loop_routine->loop != NULL && (!idle || cur_tsc - usch_tsc >= drain_tsc))) {
             usch_tsc = cur_tsc;
-            lr->loop(lr->arg);
+            loop_routine->loop(loop_routine->arg);
         }
 
         idle_sleep_tsc = rte_rdtsc();
@@ -2321,20 +2336,15 @@ ff_dpdk_if_up(void) {
 
 void
 ff_dpdk_run(loop_func_t loop, void *arg, unsigned worker_id) {
-    if (lr) {
-        rte_free(lr);
-    }
-    lr = rte_malloc(NULL, sizeof(struct loop_routine), 0);
     stop_loop = 0;
-    lr->loop = loop;
-    lr->arg = arg;
-    lr->parent_thread = pcurthread;
-    rte_eal_remote_launch(main_loop, lr, worker_id);
+    lr[worker_id].loop = loop;
+    lr[worker_id].arg = arg;
+    lr[worker_id].parent_thread = pcurthread;
+    rte_eal_remote_launch(main_loop, NULL, worker_id);
 }
 
 void ff_dpdk_wait(void) {
     rte_eal_mp_wait_lcore();
-    rte_free(lr);
 }
 
 void

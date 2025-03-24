@@ -1244,7 +1244,7 @@ kqueue_kevent(struct kqueue *kq, struct thread *td, int nchanges, int nevents,
 		nchanges -= n;
 	}
 	if (nerrors) {
-		td->td_retval[0] = nerrors;
+		td->td_retval2[0] = nerrors;
 		return (0);
 	}
 
@@ -1983,7 +1983,7 @@ done_nl:
 	KQ_NOTOWNED(kq);
 	if (nkev != 0)
 		error = k_ops->k_copyout(k_ops->arg, keva, nkev);
-	td->td_retval[0] = maxevents - count;
+	td->td_retval2[0] = maxevents - count;
 	return (error);
 }
 
