@@ -176,7 +176,12 @@ freebsd_conf_handler(struct ff_config *cfg, const char *section,
         cur = &cfg->freebsd.sysctl;
 
         if (is_integer(value)) {
-            if (strcmp(name, "kern.ipc.maxsockbuf") == 0) {
+            if (strcmp(name, "net.inet.udp.recvspace") == 0) {
+                unsigned long *p = (unsigned long *)malloc(sizeof(unsigned long));
+                *p = atol(value);
+                newconf->value = (void *)p;
+                newconf->vlen = sizeof(*p);
+            } else if (strcmp(name, "kern.ipc.maxsockbuf") == 0) {
                 long *p = (long *)malloc(sizeof(long));
                 *p = atol(value);
                 newconf->value = (void *)p;
