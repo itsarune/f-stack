@@ -127,6 +127,8 @@ static dispatch_func_t packet_dispatcher;
 
 static uint16_t rss_reta_size[RTE_MAX_ETHPORTS];
 
+struct loop_routine *lr;
+
 #define BOND_DRIVER_NAME    "net_bonding"
 
 static inline int send_single_packet(struct rte_mbuf *m, uint8_t port);
@@ -145,6 +147,27 @@ static struct ff_dpdk_if_context *veth_ctx[RTE_MAX_ETHPORTS];
 static struct ff_top_args ff_top_status;
 static struct ff_traffic_args ff_traffic;
 extern void ff_hardclock(void);
+
+struct FstackTxProfile g_FstackTxProfile;
+
+static uint16_t
+mark_tx_timestamps(uint16_t port,
+        uint16_t qidx __rte_unused,
+        struct rte_mbuf **pkts,
+        uint16_t nb_pkts,
+        void*_ __rte_unused) {
+    struct ff_port_cfg *pconf = &ff_global_cfg.dpdk.port_cfgs[port];
+    uint64_t now;
+    rte_eth_read_clock(port, &now);
+    
+    for (size_t i = 0; i < nb_pkts; i++) {
+        if (g_FstackTxProfile.numTimestamps < MAX_PROFILING_TIMESTAMPS) {
+            g_FstackTxProfile.rawHwTimestamps[g_FstackTxProfile.numTimestamps] = now;
+            ++g_FstackTxProfile.numTimestamps;
+        }
+    }
+    return nb_pkts;
+}
 
 static void
 ff_hardclock_job(__rte_unused struct rte_timer *timer,
@@ -785,6 +808,10 @@ init_port_start(void)
                     socketid, &txq_conf);
                 if (ret < 0) {
                     return ret;
+                }
+
+                if (ff_global_cfg.dpdk.enable_hardware_timestamping) {
+                    rte_eth_add_tx_callback(port_id, q, mark_tx_timestamps, NULL);
                 }
 
                 rxq_conf = dev_info.default_rxconf;
@@ -2222,12 +2249,17 @@ ff_dpdk_if_up(void) {
 
 void
 ff_dpdk_run(loop_func_t loop, void *arg) {
-    struct loop_routine *lr = rte_malloc(NULL,
-        sizeof(struct loop_routine), 0);
+    if (lr) {
+        rte_free(lr);
+    }
+    lr = rte_malloc(NULL, sizeof(struct loop_routine), 0);
     stop_loop = 0;
     lr->loop = loop;
     lr->arg = arg;
     rte_eal_mp_remote_launch(main_loop, lr, CALL_MAIN);
+}
+
+void ff_dpdk_wait(void) {
     rte_eal_mp_wait_lcore();
     rte_free(lr);
 }

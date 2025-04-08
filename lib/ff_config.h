@@ -246,6 +246,9 @@ struct ff_config {
         struct ff_vlan_cfg *vlan_cfgs;
         struct ff_vdev_cfg *vdev_cfgs;
         struct ff_bond_cfg *bond_cfgs;
+
+        // Enable RX hardware timestamping
+        int enable_hardware_timestamping;
     } dpdk;
 
     struct {

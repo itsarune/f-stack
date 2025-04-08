@@ -49,15 +49,52 @@ struct linux_sockaddr {
 #define AF_INET6_FREEBSD    28
 #define PF_INET6_FREEBSD    AF_INET6_FREEBSD
 
+#define MAX_PROFILING_TIMESTAMPS 16384
+
+struct FstackTxProfile {
+    size_t numTimestamps;
+    uint64_t rawHwTimestamps[MAX_PROFILING_TIMESTAMPS];
+};
+
+extern struct FstackTxProfile g_FstackTxProfile;
+
 typedef int (*loop_func_t)(void *arg);
 
 extern __thread struct thread *pcurthread;
 
 int ff_init(int argc, char * const argv[]);
+/**
+ * @brief Loads the config.ini file.
+ *
+ * @param argc The number of arguments.
+ * @param argv The arguments vector.
+ *
+ * @return 0 on success, -1 on failure.
+ */
+int ff_init_load_config(int argc, char * const argv[]);
+
+/**
+ * @brief Initialized the FreeBSD internal structures.
+ *
+ * @return 0 on success, -1 on failure.
+ */
+int ff_init_freebsd(void);
+
+/**
+ * @brief Initialized DPDK.
+ *
+ * @return 0 on success, -1 on failure.
+ */
+int ff_init_dpdk(void);
 
 void ff_run(loop_func_t loop, void *arg);
 
 void ff_stop_run(void);
+
+/**
+ * @brief Waits for the main loop to finish running (blocking).
+ */
+void ff_wait_run(void);
 
 /* POSIX-LIKE api begin */
 

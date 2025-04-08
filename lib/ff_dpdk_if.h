@@ -38,8 +38,20 @@ struct loop_routine {
 
 int ff_dpdk_init(int argc, char **argv);
 int ff_dpdk_if_up(void);
+
+/**
+ * @brief Starts the DPDK event loop.
+ *
+ * @param loop The function to be executed in the event loop.
+ * @param arg The argument to be passed to the loop function.
+ */
 void ff_dpdk_run(loop_func_t loop, void *arg);
 void ff_dpdk_stop(void);
+
+/**
+ * @brief Waits for the DPDK event loop to finish (blocking).
+ */
+void ff_dpdk_wait(void);
 
 struct ff_dpdk_if_context;
 struct ff_port_cfg;
