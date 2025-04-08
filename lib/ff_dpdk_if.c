@@ -24,6 +24,7 @@
  *
  */
 #include <assert.h>
+#include <pthread.h>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <errno.h>
@@ -226,7 +227,10 @@ check_all_ports_link_status(void)
         for (i = 0; i < nb_ports; i++) {
             uint16_t portid = ff_global_cfg.dpdk.portid_list[i];
             memset(&link, 0, sizeof(link));
-            rte_eth_link_get_nowait(portid, &link);
+            int ret = rte_eth_link_get_nowait(portid, &link);
+            if (ret != 0) {
+                printf("Port %d Link Down due to rte_eth_link_get_nowait failure", (int) portid);
+            }
 
             /* print link status if flag set */
             if (print_flag == 1) {
