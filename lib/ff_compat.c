@@ -91,6 +91,13 @@ ff_init_thread0(void)
     pcurthread = &thread0;
 }
 
+void
+ff_init_thread1(void)
+{
+    thread1 = thread0;
+    pcurthread = &thread1;
+}
+
 int
 kproc_kthread_add(void (*start_routine)(void *), void *arg,
     struct proc **p,  struct thread **tdp,

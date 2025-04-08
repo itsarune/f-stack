@@ -982,7 +982,7 @@ kern_recvit(struct thread *td, int s, struct msghdr *mp, enum uio_seg fromseg,
 #endif
 	if (error != 0)
 		goto out;
-	td->td_retval[0] = len - auio.uio_resid;
+	td->td_retval2[0] = len - auio.uio_resid;
 	if (mp->msg_name) {
 		len = mp->msg_namelen;
 		if (len <= 0 || fromsa == NULL)

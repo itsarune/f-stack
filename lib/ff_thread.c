@@ -5,11 +5,13 @@
 #include "ff_host_interface.h"
 
 extern __thread struct thread *pcurthread;
+extern void ff_init_thread1(void);
 
 struct thread_data {
     void * (* start_routine) (void *);
     void * arg;
     struct thread *parent;
+    int main_thread;
 };
 
 static void 
@@ -23,14 +25,18 @@ void* ff_start_routine(void * data) {
     
     void * (* start_routine) (void *) = p_data->start_routine;
     void *arg = p_data->arg;
-    ff_set_thread(p_data->parent);
+    if (p_data->main_thread) {
+        ff_set_thread(p_data->parent);
+    } else {
+        ff_init_thread1();
+    }
     ff_free(data);
     start_routine(arg);
     return NULL;
 }
 
 int
-ff_pthread_create(pthread_t *thread, const pthread_attr_t * attr, void * (* start_routine) (void *), void * arg) {
+ff_pthread_create(pthread_t *thread, const pthread_attr_t * attr, void * (* start_routine) (void *), void * arg, int main_thread) {
     struct thread_data *data;
     
     data = ff_malloc(sizeof(struct thread_data));
@@ -42,6 +48,7 @@ ff_pthread_create(pthread_t *thread, const pthread_attr_t * attr, void * (* star
     data->start_routine = start_routine;
     data->arg = arg;
     data->parent = pcurthread;
+    data->main_thread = main_thread;
     return pthread_create(thread, attr, ff_start_routine, data);
 }
 

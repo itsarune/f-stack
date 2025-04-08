@@ -63,6 +63,7 @@ extern void uma_startup(void *, int);
 extern void uma_startup2(void);
 
 extern void ff_init_thread0(void);
+extern void ff_init_thread1(void);
 
 struct sx proctree_lock;
 struct pcpu *pcpup;
@@ -118,6 +119,12 @@ int lo_set_defaultaddr(void)
     soclose(so);
 
     return ret;
+}
+
+void
+ff_thread1_init(void)
+{
+    ff_init_thread1();
 }
 
 int

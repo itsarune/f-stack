@@ -87,7 +87,14 @@ int ff_init_freebsd(void);
  */
 int ff_init_dpdk(void);
 
-void ff_run(loop_func_t loop, void *arg);
+/**
+ * @brief Runs the given callback function as part of the DPDK polling loop.
+ *
+ * @param loop The callback function to run.
+ * @param arg The argument to pass to the callback function.
+ * @param worker_id The ID of the worker thread.
+ */
+void ff_run(loop_func_t loop, void *arg, unsigned worker_id);
 
 void ff_stop_run(void);
 
@@ -186,8 +193,19 @@ int ff_gettimeofday(struct timeval *tv, struct timezone *tz);
 int ff_dup(int oldfd);
 int ff_dup2(int oldfd, int newfd);
 
+/**
+ * @brief Creates a new pthread.
+ *
+ * @param thread The thread ID.
+ * @param attr The thread attributes.
+ * @param start_routine The function to be executed by the thread.
+ * @param arg The argument to be passed to the thread function.
+ * @param main_thread Indicates if this is the main thread.
+ *
+ * @retun 0 on success
+ */
 int ff_pthread_create(pthread_t * thread, const pthread_attr_t * attr, 
-    void * (* start_routine) (void *), void * arg);
+    void * (* start_routine) (void *), void * arg, int main_thread);
 int ff_pthread_join(pthread_t thread, void **retval);
 
 /* POSIX-LIKE api end */
@@ -391,6 +409,11 @@ int ff_zc_mbuf_write(struct ff_zc_mbuf *m, const char *data, int len);
  * not implemented now.
  */
 int ff_zc_mbuf_read(struct ff_zc_mbuf *m, const char *data, int len);
+
+/**
+ * @brief Initializes a secondary F-stack thread.
+ */
+void ff_thread1_init(void);
 
 /* ZERO COPY API end */
 

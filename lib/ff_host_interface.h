@@ -78,5 +78,10 @@ int ff_in_pcbladdr(uint16_t family, void *faddr, uint16_t fport, void *laddr);
 int ff_rss_check(void *softc, uint32_t saddr, uint32_t daddr,
     uint16_t sport, uint16_t dport);
 
+/**
+ * @brief Initializes secondary thread.
+ */
+void ff_init_thread1(void);
+
 #endif
 

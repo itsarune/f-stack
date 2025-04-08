@@ -34,6 +34,7 @@
 struct loop_routine {
     loop_func_t loop;
     void *arg;
+    struct thread *parent_thread;
 };
 
 int ff_dpdk_init(int argc, char **argv);
@@ -44,8 +45,9 @@ int ff_dpdk_if_up(void);
  *
  * @param loop The function to be executed in the event loop.
  * @param arg The argument to be passed to the loop function.
+ * @param worker_id The lcore to run the loop on.
  */
-void ff_dpdk_run(loop_func_t loop, void *arg);
+void ff_dpdk_run(loop_func_t loop, void *arg, unsigned worker_id);
 void ff_dpdk_stop(void);
 
 /**

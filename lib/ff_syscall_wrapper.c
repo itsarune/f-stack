@@ -1128,7 +1128,7 @@ ff_recvmsg(int s, struct msghdr *msg, int flags)
     if ((rc = kern_recvit(curthread, s, &freebsd_msg, UIO_SYSSPACE, NULL))) {
         goto kern_fail;
     }
-    rc = curthread->td_retval[0];
+    rc = curthread->td_retval2[0];
 
     freebsd2linux_msghdr((struct linux_msghdr *)msg, &freebsd_msg, 0);
 
@@ -1454,7 +1454,7 @@ ff_kevent_do_each(int kq, const struct kevent *changelist, int nchanges,
             &ts)))
         goto kern_fail;
 
-    rc = curthread->td_retval[0];
+    rc = curthread->td_retval2[0];
     return (rc);
 kern_fail:
     ff_os_errno(rc);

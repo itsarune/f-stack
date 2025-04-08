@@ -91,6 +91,7 @@ parse_lcore_mask(struct ff_config *cfg, const char *coremask)
      * Remove all blank characters ahead and after.
      * Remove 0x/0X if exists.
      */
+    cfg->dpdk.proc_mask = strdup(coremask);
     while (isblank(*coremask))
         coremask++;
     if (coremask[0] == '0' && ((coremask[1] == 'x')
@@ -113,14 +114,6 @@ parse_lcore_mask(struct ff_config *cfg, const char *coremask)
         for (j = 0; j < BITS_PER_HEX && idx < RTE_MAX_LCORE; j++, idx++) {
             if ((1 << j) & val) {
                 proc_lcore[count] = idx;
-                if (cfg->dpdk.proc_id == count) {
-                    zero_num = idx >> 2;
-                    shift = idx & 0x3;
-                    memset(zero,'0',zero_num);
-                    snprintf(buf, sizeof(buf) - 1, "%llx%s",
-                        (unsigned long long)1<<shift, zero);
-                    cfg->dpdk.proc_mask = strdup(buf);
-		}
                 count++;
             }
         }
@@ -174,7 +167,12 @@ freebsd_conf_handler(struct ff_config *cfg, const char *section,
         cur = &cfg->freebsd.sysctl;
 
         if (is_integer(value)) {
-            if (strcmp(name, "kern.ipc.maxsockbuf") == 0) {
+            if (strcmp(name, "net.inet.udp.recvspace") == 0) {
+                unsigned long *p = (unsigned long *)malloc(sizeof(unsigned long));
+                *p = atol(value);
+                newconf->value = (void *)p;
+                newconf->vlen = sizeof(*p);
+            } else if (strcmp(name, "kern.ipc.maxsockbuf") == 0) {
                 long *p = (long *)malloc(sizeof(long));
                 *p = atol(value);
                 newconf->value = (void *)p;
