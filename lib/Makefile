@@ -79,6 +79,10 @@ else
 HOST_CFLAGS = ${DEBUG} 
 endif
 
+ifeq "$(SINGLE_THREAD)" "1"
+	HOST_CFLAGS += -DSINGLE_THREAD
+endif
+
 ifdef FF_KNI
 HOST_CFLAGS+= -DFF_KNI
 endif

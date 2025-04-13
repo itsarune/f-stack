@@ -138,8 +138,12 @@ pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 int dpdk_initialized = 0;
 
+#ifdef SINGLE_THREAD
+static const int LCORE = 5;
+#else
 static const int READ_LCORE = 5;
 static const int WRITE_LCORE = 6;
+#endif
 
 struct ff_msg_ring {
     char ring_name[FF_MSG_NUM][RTE_RING_NAMESIZE];
@@ -303,6 +307,17 @@ init_lcore_conf(void)
 
     const int PORT = 0;
     struct ff_port_cfg *pconf = &ff_global_cfg.dpdk.port_cfgs[PORT];
+#if SINGLE_THREAD
+    printf("lcore %u, port %u, queue %u\n", LCORE, PORT, pconf->nb_lcores);
+    struct lcore_conf *lconf = &lcore_conf[LCORE];
+    lcore_conf->nb_rx_queue = 1;
+    lconf->rx_queue_list[0].port_id = PORT;
+    lconf->rx_queue_list[0].queue_id = 0;
+    lconf->nb_tx_port = 1;
+    lconf->nb_queue_list[PORT] = 1;
+    lconf->tx_port_id[0] = PORT;
+    lconf->tx_queue_id[PORT] = 0;
+#else
     printf("lcore %u, port %u, queue %u\n", READ_LCORE, PORT, pconf->nb_lcores);
     struct lcore_conf *lconf = &lcore_conf[READ_LCORE];
     lconf->nb_rx_queue = 1;
@@ -316,6 +331,7 @@ init_lcore_conf(void)
     lconf->nb_tx_port = 1;
     lconf->tx_port_id[0] = PORT;
     lconf->tx_queue_id[PORT] = 0;
+#endif
 
     return 0;
 }
@@ -326,7 +342,11 @@ init_mem_pool(void)
     uint8_t nb_ports = ff_global_cfg.dpdk.nb_ports;
     uint32_t nb_lcores = ff_global_cfg.dpdk.nb_procs;
     uint32_t nb_tx_queue = nb_lcores;
+#ifdef SINGLE_THREAD
+    uint32_t nb_rx_queue = lcore_conf[LCORE].nb_rx_queue * nb_lcores;
+#else
     uint32_t nb_rx_queue = lcore_conf[READ_LCORE].nb_rx_queue * nb_lcores;
+#endif
     uint16_t max_portid = ff_global_cfg.dpdk.max_portid;
 
     unsigned nb_mbuf = RTE_ALIGN_CEIL (
@@ -419,7 +439,11 @@ init_dispatch_ring(void)
     char name_buf[RTE_RING_NAMESIZE];
     int queueid;
 
+#ifdef SINGLE_THREAD
+    unsigned socketid = lcore_conf[LCORE].socket_id;
+#else
     unsigned socketid = lcore_conf[READ_LCORE].socket_id;
+#endif
 
     /* Create ring according to ports actually being used. */
     int nb_ports = ff_global_cfg.dpdk.nb_ports;
@@ -474,7 +498,11 @@ init_msg_ring(void)
 {
     uint16_t i, j;
     uint16_t nb_procs = ff_global_cfg.dpdk.nb_procs;
+#ifdef SINGLE_THREAD
+    unsigned socketid = lcore_conf[LCORE].socket_id;
+#else
     unsigned socketid = lcore_conf[READ_LCORE].socket_id;
+#endif
 
     /* Create message buffer pool */
     if (rte_eal_process_type() == RTE_PROC_PRIMARY) {
@@ -543,7 +571,11 @@ init_kni(void)
     ff_kni_init(nb_ports, ff_global_cfg.kni.type, ff_global_cfg.kni.tcp_port,
         ff_global_cfg.kni.udp_port);
 
+#ifdef SINGLE_THREAD
+    unsigned socket_id = lcore_conf[LCORE].socket_id;
+#else
     unsigned socket_id = lcore_conf[READ_LCORE].socket_id;
+#endif
     struct rte_mempool *mbuf_pool = pktmbuf_pool[socket_id];
 
     nb_ports = ff_global_cfg.dpdk.nb_ports;
@@ -789,7 +821,11 @@ init_port_start(void)
             nb_queues = 1;
             for (q = 0; q < nb_queues; q++) {
                 if (numa_on) {
+#ifdef SINGLE_THREAD
+                    uint16_t lcore_id = lcore_conf[LCORE].port_cfgs[u_port_id].lcore_list[q];
+#else
                     uint16_t lcore_id = lcore_conf[READ_LCORE].port_cfgs[u_port_id].lcore_list[q];
+#endif
                     socketid = rte_lcore_to_socket_id(lcore_id);
                 }
                 mbuf_pool = pktmbuf_pool[socketid];
@@ -1286,11 +1322,6 @@ ff_dpdk_init(int argc, char **argv)
 	rte_exit(EXIT_FAILURE, "fdir_add_tcp_flow failed\n");
 #endif
 
-    pthread_mutex_lock(&mtx);
-    dpdk_initialized = 1;
-    pthread_cond_signal(&cond);
-    pthread_mutex_unlock(&mtx);
-
     return 0;
 }
 
@@ -1471,7 +1502,11 @@ static inline void
 process_packets(uint16_t port_id, uint16_t queue_id, struct rte_mbuf **bufs,
     uint16_t count, const struct ff_dpdk_if_context *ctx, int pkts_from_ring)
 {
+#ifdef SINGLE_THREAD
+    struct lcore_conf *qconf = &lcore_conf[LCORE];
+#else
     struct lcore_conf *qconf = &lcore_conf[READ_LCORE];
+#endif
     uint16_t nb_queues = qconf->nb_queue_list[port_id];
 
     uint16_t i;
@@ -1876,7 +1911,11 @@ send_single_packet(struct rte_mbuf *m, uint8_t port)
     uint16_t len;
     struct lcore_conf *qconf;
 
+#ifdef SINGLE_THREAD
+    qconf = &lcore_conf[LCORE];
+#else
     qconf = &lcore_conf[WRITE_LCORE];
+#endif
     len = qconf->tx_mbufs[port].len;
     qconf->tx_mbufs[port].m_table[len] = m;
     len++;
@@ -1907,7 +1946,11 @@ ff_dpdk_if_send(struct ff_dpdk_if_context *ctx, void *m,
     qconf->tx_mbufs[ctx->port_id].len = len;
     return 0;
 #endif
+#ifdef SINGLE_THREAD
+    struct rte_mempool *mbuf_pool = pktmbuf_pool[lcore_conf[LCORE].socket_id];
+#else
     struct rte_mempool *mbuf_pool = pktmbuf_pool[lcore_conf[WRITE_LCORE].socket_id];
+#endif
     struct rte_mbuf *head = rte_pktmbuf_alloc(mbuf_pool);
     if (head == NULL) {
         ff_mbuf_free(m);
@@ -2022,7 +2065,11 @@ ff_dpdk_if_send(struct ff_dpdk_if_context *ctx, void *m,
 int
 ff_dpdk_raw_packet_send(void *data, int total, uint16_t port_id)
 {
+#ifdef SINGLE_THREAD
+    struct rte_mempool *mbuf_pool = pktmbuf_pool[lcore_conf[LCORE].socket_id];
+#else
     struct rte_mempool *mbuf_pool = pktmbuf_pool[lcore_conf[WRITE_LCORE].socket_id];
+#endif
     struct rte_mbuf *head = rte_pktmbuf_alloc(mbuf_pool);
     if (head == NULL) {
         return -1;
@@ -2236,7 +2283,11 @@ main_loop(void *arg)
 int
 ff_dpdk_if_up(void) {
     int i;
+#ifdef SINGLE_THREAD
+    struct lcore_conf *qconf = &lcore_conf[LCORE];
+#else
     struct lcore_conf *qconf = &lcore_conf[WRITE_LCORE];
+#endif
     for (i = 0; i < qconf->nb_tx_port; i++) {
         uint16_t port_id = qconf->tx_port_id[i];
 
@@ -2328,7 +2379,11 @@ int
 ff_rss_check(void *softc, uint32_t saddr, uint32_t daddr,
     uint16_t sport, uint16_t dport)
 {
+#ifdef SINGLE_THREAD
+    struct lcore_conf *qconf = &lcore_conf[LCORE];
+#else
     struct lcore_conf *qconf = &lcore_conf[READ_LCORE];
+#endif
     struct ff_dpdk_if_context *ctx = ff_veth_softc_to_hostc(softc);
     uint16_t nb_queues = qconf->nb_queue_list[ctx->port_id];
 
