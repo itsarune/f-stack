@@ -310,7 +310,7 @@ init_lcore_conf(void)
 #if SINGLE_THREAD
     printf("lcore %u, port %u, queue %u\n", LCORE, PORT, pconf->nb_lcores);
     struct lcore_conf *lconf = &lcore_conf[LCORE];
-    lcore->nb_rx_queue = 1;
+    lconf->nb_rx_queue = 1;
     lconf->rx_queue_list[0].port_id = PORT;
     lconf->rx_queue_list[0].queue_id = 0;
     lconf->nb_tx_port = 1;
