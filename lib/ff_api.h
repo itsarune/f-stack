@@ -49,7 +49,7 @@ struct linux_sockaddr {
 #define AF_INET6_FREEBSD    28
 #define PF_INET6_FREEBSD    AF_INET6_FREEBSD
 
-#define MAX_PROFILING_TIMESTAMPS 16384
+#define MAX_PROFILING_TIMESTAMPS 16384*2
 
 struct FstackTxProfile {
     size_t numTimestamps;
